@@ -1,5 +1,5 @@
 import setupKeyboard, { keyCodes } from "./keyboard.js"
-import { createGround, createWorld, createMotorcycle, mpx, actors, createBridge } from "./creators.js"
+import { mpx, World } from "./world.js"
 import * as PIXI from "pixi.js"
 import Stats from "stats.js"
 
@@ -43,72 +43,7 @@ container.position.set(app.renderer.screen.width / 2, app.renderer.screen.height
 const SPEED = 50.0
 const ROTATE_SPEED = 0.1
 
-const world = createWorld(10)
-
-function createLevel(world) {
-  const { body: ground, addGroundFixture } = createGround(world, 0, -10)
-
-  addGroundFixture(-20, 0, 20, 0)
-
-  const hs = [0.25, 1.0, 4.0, 0.0, 0.0, -1.0, -2.0, -2.0, -1.25, 0.0]
-
-  let x = 20.0
-  let y1 = 0.0
-  let dx = 5.0
-
-  for (let i = 0; i < 10; ++i) {
-    const y2 = hs[i]
-    addGroundFixture(x, y1, x + dx, y2)
-    y1 = y2
-    x += dx
-  }
-
-  for (let i = 0; i < 10; ++i) {
-    const y2 = hs[i]
-    addGroundFixture(x, y1, x + dx, y2)
-    y1 = y2
-    x += dx
-  }
-
-  addGroundFixture(x, 0.0, x + 40.0, 0.0)
-
-  x += 80.0
-  addGroundFixture(x, 0.0, x + 40.0, 0.0)
-
-  x += 40.0
-  addGroundFixture(x, 0.0, x + 10.0, 5.0)
-
-  x += 20.0
-  addGroundFixture(x, 0.0, x + 40.0, 0.0)
-
-  x += 40.0
-  addGroundFixture(x, 0.0, x, 20.0)
-
-  createBridge(world, ground)
-}
-
-createLevel(world)
-
-const { body: motorcycle, springBack: motorcycleSpringBack } = createMotorcycle(world, 0, -8, 0x4db6ac)
-const { body: motorcycle2, springBack: motorcycle2SpringBack } = createMotorcycle(world, 4, -8, 0xe57373)
-
-// Teeter
-// const teeter = world.createDynamicBody(Vec2(140.0, 1.0));
-// teeter.createFixture(Box(10.0, 0.25), 1.0);
-// world.createJoint(
-//   RevoluteJoint(
-//     {
-//       lowerAngle: (-8.0 * Math.PI) / 180.0,
-//       upperAngle: (8.0 * Math.PI) / 180.0,
-//       enableLimit: true
-//     },
-//     ground,
-//     teeter,
-//     teeter.getPosition()
-//   )
-// );
-
-// teeter.applyAngularImpulse(100.0, true);
+const world = new World(10)
 
 // Bridge
 // const bridgeFD = {};
@@ -143,36 +78,36 @@ const { body: motorcycle2, springBack: motorcycle2SpringBack } = createMotorcycl
 // world.createDynamicBody(Vec2(230.0, 3.5)).createFixture(box, 0.5);
 
 // world.createDynamicBody(Vec2(230.0, 4.5)).createFixture(box, 0.5);
-for (let actor of actors) {
-  container.addChild(actor)
-}
 
 var stats = new Stats()
 stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
 document.body.appendChild(stats.dom)
 
+container.addChild(...world.graphicsList)
+const [m1] = world.motorcycles
+
 function inputLoop() {
   if (window._keys[keyCodes["UP"]]) {
-    motorcycleSpringBack.enableMotor(true)
-    motorcycleSpringBack.setMotorSpeed(-SPEED)
+    m1.backWheelJoint.enableMotor(true)
+    m1.backWheelJoint.setMotorSpeed(-SPEED)
   } else if (window._keys[keyCodes["DOWN"]]) {
-    motorcycleSpringBack.enableMotor(true)
-    motorcycleSpringBack.setMotorSpeed(+SPEED)
+    m1.backWheelJoint.enableMotor(true)
+    m1.backWheelJoint.setMotorSpeed(+SPEED)
   } else {
-    motorcycleSpringBack.setMotorSpeed(0)
-    motorcycleSpringBack.enableMotor(false)
+    m1.backWheelJoint.setMotorSpeed(0)
+    m1.backWheelJoint.enableMotor(false)
   }
 
-  if (window._keys[keyCodes["W"]]) {
-    motorcycle2SpringBack.enableMotor(true)
-    motorcycle2SpringBack.setMotorSpeed(-SPEED)
-  } else if (window._keys[keyCodes["S"]]) {
-    motorcycle2SpringBack.enableMotor(true)
-    motorcycle2SpringBack.setMotorSpeed(+SPEED)
-  } else {
-    motorcycle2SpringBack.setMotorSpeed(0)
-    motorcycle2SpringBack.enableMotor(false)
-  }
+  // if (window._keys[keyCodes["W"]]) {
+  //   m2.backWheelJoint.enableMotor(true)
+  //   m2.backWheelJoint.setMotorSpeed(-SPEED)
+  // } else if (window._keys[keyCodes["S"]]) {
+  //   m2.backWheelJoint.enableMotor(true)
+  //   m2.backWheelJoint.setMotorSpeed(+SPEED)
+  // } else {
+  //   m2.backWheelJoint.setMotorSpeed(0)
+  //   m2.backWheelJoint.enableMotor(false)
+  // }
 
   if (window._keys[keyCodes["SPACE"]]) {
     if (app.ticker.started) {
@@ -183,15 +118,15 @@ function inputLoop() {
   }
 
   if (window._keys[keyCodes["LEFT"]]) {
-    motorcycle.applyAngularImpulse(ROTATE_SPEED)
+    m1.body.applyAngularImpulse(ROTATE_SPEED)
   } else if (window._keys[keyCodes["RIGHT"]]) {
-    motorcycle.applyAngularImpulse(-ROTATE_SPEED)
+    m1.body.applyAngularImpulse(-ROTATE_SPEED)
   }
-  if (window._keys[keyCodes["A"]]) {
-    motorcycle2.applyAngularImpulse(ROTATE_SPEED)
-  } else if (window._keys[keyCodes["D"]]) {
-    motorcycle2.applyAngularImpulse(-ROTATE_SPEED)
-  }
+  // if (window._keys[keyCodes["A"]]) {
+  //   m2.body.applyAngularImpulse(ROTATE_SPEED)
+  // } else if (window._keys[keyCodes["D"]]) {
+  //   m2.body.applyAngularImpulse(-ROTATE_SPEED)
+  // }
 }
 
 function physicsLoop() {
@@ -201,35 +136,35 @@ function physicsLoop() {
 function renderLoop() {
   stats.begin()
 
-  for (let actor of actors) {
-    const { x, y } = actor.body.getPosition()
-    const angle = actor.body.getAngle()
-    actor.position.x = mpx(x)
-    actor.position.y = mpx(y)
-    actor.rotation = angle
+  for (let g of world.graphicsList) {
+    const { x, y } = g.body.getPosition()
+    const angle = g.body.getAngle()
+    g.position.x = mpx(x)
+    g.position.y = mpx(y)
+    g.rotation = angle
   }
 
-  const { x, y } = motorcycle.getPosition()
-  const { x: x2, y: y2 } = motorcycle2.getPosition()
+  const { x, y } = m1.body.getPosition()
+  // const { x: x2, y: y2 } = m2.body.getPosition()
 
-  const distance = Math.abs(x - x2)
-  const scale = Math.min(1, app.renderer.width / mpx(distance * 1.25))
-  container.scale.x = scale
-  container.scale.y = -scale
+  // const distance = Math.abs(x - x2)
+  // const scale = Math.min(1, app.renderer.width / mpx(distance * 1.25))
+  // container.scale.x = scale
+  // container.scale.y = -scale
 
-  container.pivot.x = mpx(Math.min(x, x2) + distance / 2)
-  container.pivot.y = mpx(Math.min(y, y2) + Math.abs(y - y2) / 2)
+  container.pivot.x = mpx(x)
+  container.pivot.y = mpx(y)
 
   stats.end()
 }
 
 const inputTicker = new PIXI.ticker.Ticker()
 inputTicker.autoStart = true
-inputTicker.add(function(delta) {
+inputTicker.add(() => {
   inputLoop()
 })
 
-app.ticker.add(function(delta) {
+app.ticker.add(() => {
   physicsLoop()
   renderLoop()
 })
