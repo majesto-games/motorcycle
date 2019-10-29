@@ -2,26 +2,19 @@ import setupKeyboard, { keyCodes, addKeyListener } from "./keyboard.js"
 // import { mpx, World } from "./world.js"
 import * as PIXI from "pixi.js"
 import Stats from "stats.js"
-import React, { useContext, useRef, useState } from "react"
+import React, { useContext, useRef, useState, useEffect, createContext } from "react"
 import { render } from "react-dom"
 // @ts-ignore
 import { Sprite, Stage, Container, Graphics, usePixiTicker } from "react-pixi-fiber"
 
 import "./style.css"
 import { Vec2, Box, Circle, WheelJoint, World } from "planck-js"
-import Bike from "./Bike.js"
+import Bike from "./Bike"
 
 // @ts-ignore
 if (module.hot) {
   // @ts-ignore
   module.hot.dispose(() => {
-    const canvas = document.querySelector("canvas")
-
-    canvas
-      .getContext("web-gl")
-      .getExtension("WEBGL_lose_context")
-      .loseContext()
-
     window.location.reload()
     throw "whatever"
   })
@@ -30,27 +23,6 @@ if (module.hot) {
 PIXI.utils.skipHello()
 
 setupKeyboard()
-
-const useAnimationFrame = (callback) => {
-  // Use useRef for mutable variables that we want to persist
-  // without triggering a re-render on their change
-  const requestRef = React.useRef()
-  const previousTimeRef = React.useRef()
-
-  const animate = (time) => {
-    if (previousTimeRef.current != undefined) {
-      const deltaTime = time - previousTimeRef.current
-      callback(deltaTime)
-    }
-    previousTimeRef.current = time
-    requestRef.current = requestAnimationFrame(animate)
-  }
-
-  React.useEffect(() => {
-    requestRef.current = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(requestRef.current)
-  }, []) // Make sure the effect runs only once
-}
 
 // const renderOptions = {
 //   backgroundColor: 0x000000,
@@ -245,36 +217,14 @@ export function pxm(p) {
   return p / pscale
 }
 
-const world = new World({ gravity: Vec2(0, -10) }) // rendering loop
-
+const world = new World({ gravity: Vec2(0, -10) })
+export const WorldContext = createContext(world)
 ;(function loop() {
   world.step(1 / 60)
   setTimeout(loop, 1000 / 60)
 })()
 
-const body = world.createDynamicBody(Vec2(40, -40))
-const bodyFixtureOptions = {
-  density: 1,
-  filterCategoryBits: CATEGORY_PLAYER,
-  filterMaskBits: CATEGORY_SCENERY,
-}
-
-body.createFixture(Box(0.75, 0.25), bodyFixtureOptions)
-
-function PhysicsBike() {
-  const [position, setPosition] = useState({ x: 0, y: 0 })
-
-  usePixiTicker(() => {
-    const { x, y } = body.getPosition()
-    setPosition({ x, y })
-  })
-
-  return <Bike position={position} />
-}
-
 function App() {
-  const [bodies, setBodies] = React.useState([])
-
   return (
     <Stage
       width={document.body.clientWidth}
@@ -286,7 +236,7 @@ function App() {
         pivot={new PIXI.Point(0, 0)}
         scale={new PIXI.Point(1, -1)}
       >
-        <PhysicsBike />
+        <Bike />
       </Container>
     </Stage>
   )
