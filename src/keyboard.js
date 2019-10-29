@@ -113,8 +113,8 @@ export const keyCodes = {
   BACK_SLASH: 220,
   CLOSE_BRACKET: 221,
   QUOTE: 222,
-  META: 224
-};
+  META: 224,
+}
 
 export const keyNames = {
   3: "CANCEL",
@@ -231,11 +231,14 @@ export const keyNames = {
   220: "BACK_SLASH",
   221: "CLOSE_BRACKET",
   222: "QUOTE",
-  224: "META"
-};
+  224: "META",
+}
+
+const keydownListeners = {}
+const keyupListeners = {}
 
 export default function setup(preventDefault = false, context = window) {
-  context._keys = [];
+  context._keys = []
 
   function setKeysPressed(e, isPressed) {
     // if (e.metaKey || e.ctrlKey || e.altKey) {
@@ -244,18 +247,48 @@ export default function setup(preventDefault = false, context = window) {
 
     if (keyNames[e.keyCode] != null) {
       if (preventDefault) {
-        e.preventDefault();
+        e.preventDefault()
       }
 
-      context._keys[e.keyCode] = isPressed;
+      context._keys[e.keyCode] = isPressed
     }
   }
 
-  context.addEventListener("keydown", e => {
-    setKeysPressed(e, true);
-  });
+  context.addEventListener("keydown", (e) => {
+    setKeysPressed(e, true)
 
-  context.addEventListener("keyup", e => {
-    setKeysPressed(e, false);
-  });
+    if (keydownListeners[e.keyCode]) {
+      keydownListeners[e.keyCode].forEach((cb) => cb())
+    }
+  })
+
+  context.addEventListener("keyup", (e) => {
+    setKeysPressed(e, false)
+
+    if (keyupListeners[e.keyCode]) {
+      keyupListeners[e.keyCode].forEach((cb) => cb())
+    }
+  })
+}
+
+export function addKeyListener(key, event, cb) {
+  if (typeof cb !== "function") {
+    throw new Error("Callback must be a function")
+  }
+
+  if (!keyCodes[key]) {
+    throw new Error("Invalid key given")
+  }
+
+  const keyCode = keyCodes[key]
+
+  if (event === "keydown") {
+    if (!keydownListeners[keyCode]) keydownListeners[keyCode] = []
+    keydownListeners[keyCode].push(cb)
+  } else if (event === "keyup") {
+    if (!keyupListeners[keyCode]) keyupListeners[keyCode] = []
+    keyupListeners[keyCode].push(cb)
+  } else {
+    throw new Error("Event must be 'keydown' or 'keyup'")
+  }
 }
